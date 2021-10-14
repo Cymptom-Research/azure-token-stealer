@@ -1,1 +1,1 @@
-# azure-token-stealer-
+# azure-token-stealer
