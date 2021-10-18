@@ -40,12 +40,12 @@ def execute(user_options: argparse.Namespace):
         connection.connect()
     except Exception as e:
         if "STATUS_LOGON_FAILURE" in str(e):
-            logging.debug(f"Invalid Username or Password\nusername:{user_options.user}, password:{user_options.password}")
+            logging.error(f"Invalid Username or Password\nusername:{user_options.user}, password:{user_options.password}")
             sys.exit(1)
         else:
-            logging.error(f"Error to connect to {user_options.target} using {user_options.user},{user_options.password}")
+            logging.error(f"Failed to connect to {user_options.target} using {user_options.user},{user_options.password}")
             sys.exit(1)
-    if user_options.all or user_options.file == False and user_options.env == False and user_options.dpapi == False:
+    if user_options.all or (user_options.file == False and user_options.env == False and user_options.dpapi == False):
         res_dp = dpapi_execute(connection)
         res_reg = reg_execute(connection)
         res_file = execute_file(connection)
@@ -72,7 +72,7 @@ def print_res(res_dp=None, res_file=None, res_reg=None, target=None):
     :return:
     """
     logging.info("Printing result:\n")
-    time.sleep(3)
+    logging.getLogger().handlers[0].flush()
     if res_dp:
         logging.info(f"There are {len(res_dp)} users with DPAPI secrets that have access to Azure:\n")
         for k, v in res_dp.items():
@@ -112,7 +112,7 @@ def reg_execute(connection):
     :return:
     """
     logging.debug(f"Searching in environment variable on target {connection.target} to access Azure:")
-    reg = Registry(connection, logging)
+    reg = Registry(connection)
     logging.debug(f"Finish registry execution on target {connection.target}:")
     return reg.enum_values()
 
@@ -124,7 +124,7 @@ def dpapi_execute(connection):
     :return:
     """
     logging.debug(f"Searching for DPAPI secret on target {connection.target} to access Azure:")
-    dp = Dpapi(connection, logging)
+    dp = Dpapi(connection)
     logging.debug(f"Finish Dpapi execution on target {connection.target}:")
     return dp.execute()
 
@@ -132,9 +132,10 @@ def dpapi_execute(connection):
 if __name__ == "__main__":
     sys.tracebacklimit = -1
     parser = argparse.ArgumentParser(add_help=True,
-                                     description="Queries a specific target for found Azure credential or tokens\nThe user should have admin access to the target")
+                                     description="Queries a specific target for found Azure credential or "
+                                                 "tokens\nShould run with a privileged account")
 
-    parser.add_argument('target', action='store', help='target to query')
+    parser.add_argument('target', action='store', help='target to query (IP or Hostname)')
     parser.add_argument('user', action='store', metavar='username', help='username for authentication')
     parser.add_argument('password', action='store', help='password for authentication')
     parser.add_argument('-d', '--domain', action='store', default='', help='domain name')
@@ -145,7 +146,7 @@ if __name__ == "__main__":
     parser.add_argument('-debug', action='store_true', help='Turn DEBUG output ON')
 
     if len(sys.argv) == 1:
-        parser.print_help()
+        parser.print_help(sys.stderr)
         sys.exit(1)
     options = parser.parse_args()
     if options.debug is True:
@@ -154,9 +155,6 @@ if __name__ == "__main__":
         logging.debug(version.getInstallationPath())
     else:
         logging.getLogger().setLevel(logging.INFO)
-    if not options.user and not options.password and not options.target:
-        parser.print_help()
-        sys.exit(1)
     logger.init()
     logging.info(f"Searching for Azure token and password in target {options.target}")
     execute(options)

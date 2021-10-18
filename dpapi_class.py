@@ -1,26 +1,29 @@
 import base64
 import json
+import logging
 import os
 import sqlite3
 import tempfile
+from typing import List
+
 from impacket import dpapi
 from connection_class import Connection
 from file_class import File
-from static_methods import deriveKeysFromUser, has_v10_header, decrypt_chrome_v80_password
+from static_methods import deriveKeysFromUser, has_v10_header, decrypt_chrome_v80_password, USERNAME
 from impacket.dpapi import MasterKeyFile, MasterKey
 from impacket.uuid import bin_to_string
 
 
 class Dpapi:
+    dpapi = r"Users\{0}\AppData\{1}"
+    c = "C$"
 
-    def __init__(self, connection: Connection, logger):
-        self.logger = logger
+    def __init__(self, connection: Connection):
+        self.logger = logging.getLogger(__name__)
         self.connection = connection
         self.file = File(self.connection)
-        self.dpapi = r"Users\{0}\AppData\{1}"
-        self.c = "C$"
 
-    def get_users(self) -> list:
+    def get_users(self) -> List[USERNAME]:
         """
         Returns names of all the users in the target
         :return:
@@ -43,6 +46,7 @@ class Dpapi:
         except KeyboardInterrupt:
             raise
         except Exception as e:
+            self.logger.debug("File is not found or file is opened")
             # file is opened or not found
             return {}
 
@@ -56,7 +60,7 @@ class Dpapi:
         except KeyboardInterrupt:
             raise
         except Exception as e:
-            # Cant decrypt_blob
+            self.logger.debug("Failed to decrypt blob")
             return {}
 
     def get_keys(self, user: str):
@@ -125,6 +129,7 @@ class Dpapi:
         except KeyboardInterrupt:
             raise
         except Exception as e:
+            self.logger.debug("File is not found or file is opened")
             # file is opened or not found
             return b""
 
@@ -156,7 +161,10 @@ class Dpapi:
         username = ""
         try:
             remote_content = self.file.read_file(self.c, login_data_path)
+        except KeyboardInterrupt:
+            raise
         except:
+            self.logger.debug("File is not found or file is opened")
             return {}
 
         try:
@@ -252,7 +260,14 @@ class Dpapi:
                 else:
                     self.logger.debug(f"Cant find master keys for user {user}")
             return res
+
+        except KeyboardInterrupt:
+            raise
         except Exception as e:
             if "STATUS_ACCESS_DENIED({Access Denied}" in str(e):
                 self.logger.error("The User dose not have admin privilege access")
                 raise
+            else:
+                self.logger.error(f"Failed to retrieve master keys from target {self.connection.target}")
+                raise
+

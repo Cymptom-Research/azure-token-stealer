@@ -4,6 +4,8 @@ from Cryptodome.Cipher import AES
 from Cryptodome.Hash import HMAC, SHA1, MD4
 
 
+USERNAME = str
+
 def deriveKeysFromUser(sid, password):
     # Will generate two keys, one with SHA1 and another with MD4
     key1 = HMAC.new(SHA1.new(password.encode('utf-16le')).digest(), (sid + '\0').encode('utf-16le'), SHA1).digest()

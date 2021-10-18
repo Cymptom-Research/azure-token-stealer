@@ -1,3 +1,6 @@
+import logging
+from typing import List, Dict
+
 from connection_class import Connection
 from impacket.dcerpc.v5 import rrp
 
@@ -11,17 +14,22 @@ HIVE_MAP = {
 
 
 class Registry:
-    def __init__(self, reg_connection: Connection, logger):
+    def __init__(self, reg_connection: Connection):
         self.connection = reg_connection
-        self.logger = logger
-        self.winreg = None
+        self.logger = logging.getLogger(__name__)
         self.winreg = self.connection.connect_pipe("winreg")
 
-    def enum_values(self):
-        count = 0
-        found = 0
+    def enum_values(self) -> List[Dict[str, str]]:
+        """
+        Function that searches for azure credentials in environment_variables by checking the registry path
+        'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+
+        :return:
+        """
+        count_registry_values = 0
+        found_azure_credentials = False
         res = []
-        self.logger.info("Open registry key SYSTEM\CurrentControlSet\Control\Session Manager\Environment")
+        self.logger.debug("Open registry key SYSTEM\CurrentControlSet\Control\Session Manager\Environment")
         hroot = self.open_key("SYSTEM\CurrentControlSet\Control\Session Manager\Environment")
         variable_to_search = [
             "AZURE_CLIENT_ID", "AZURE_TENANT_ID", "AZURE_CLIENT_SECRET", "AZURE_CLIENT_CERTIFICATE_PATH",
@@ -30,28 +38,39 @@ class Registry:
         try:
             while True:
                 try:
-                    val = rrp.hBaseRegEnumValue(self.winreg, hroot, count)
+                    val = rrp.hBaseRegEnumValue(self.winreg, hroot, count_registry_values)
                     value_name = str(val["lpValueNameOut"]).rsplit("\x00")[0]
                     if value_name in variable_to_search:
                         value_content = ""
                         for char in val["lpData"][:-2:2]:
                             value_content = value_content + char.decode("utf-8")
                         res.append({value_name: value_content})
-                        found = 1
-                        count = count + 1
+                        found_azure_credentials = True
+                        count_registry_values = count_registry_values + 1
                     else:
-                        count = count + 1
+                        count_registry_values = count_registry_values + 1
                 except rrp.DCERPCSessionError as e:
                     if str(e).find("No more data is available"):
                         break
+                    else:
+                        self.logger.error(f"Failed to read registry value {e}")
+                        raise
             return res
         except rrp.DCERPCSessionError as e:
+            self.logger.error(f"Failed to read registry value")
             raise e
         finally:
-            if not found:
+            if not found_azure_credentials:
                 self.logger.error("Cant find any environment_variables")
 
     def open_key(self, key_name: str, hroot: rrp.RPC_HKEY = None, hive: str = "HKLM") -> rrp.RPC_HKEY:
+        """
+                Opens registry key and returns its handle
+                :param key_name: key to open
+                :param hroot: Root key handle
+                :param hive: Hive in a str format. i.e. HKLM, HKCU, HKU, etc.
+                :return: handle to the key opened
+        """
 
         # If no root handle specified, open hive
         if not hroot:
