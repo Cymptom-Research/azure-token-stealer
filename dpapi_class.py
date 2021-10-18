@@ -88,28 +88,31 @@ class Dpapi:
                                 data = data[len(mkf):]
 
                                 if mkf['MasterKeyLen'] > 0:
-                                    mk = MasterKey(data[:mkf['MasterKeyLen']])
-                                    try:
-                                        key1, key2, key3 = deriveKeysFromUser(sid[0], self.connection.password)
-                                        decryptedKey = mk.decrypt(key3)
-                                        if decryptedKey:
-                                            keys[file.get_longname()] = decryptedKey
-                                        else:
-                                            decryptedKey = mk.decrypt(key2)
-                                            if decryptedKey:
-                                                keys[file.get_longname()] = decryptedKey
-                                            else:
-                                                decryptedKey = mk.decrypt(key1)
-                                                if decryptedKey:
-                                                    keys[file.get_longname()] = decryptedKey
-                                    except:
-                                        pass
+                                    self._decrypt_master_key(data, file, keys, mkf, sid)
                     except:
                         pass
 
             except:
                 pass
         return keys
+
+    def _decrypt_master_key(self, data, file, keys, mkf, sid):
+        mk = MasterKey(data[:mkf['MasterKeyLen']])
+        try:
+            key1, key2, key3 = deriveKeysFromUser(sid[0], self.connection.password)
+            decryptedKey = mk.decrypt(key3)
+            if decryptedKey:
+                keys[file.get_longname()] = decryptedKey
+            else:
+                decryptedKey = mk.decrypt(key2)
+                if decryptedKey:
+                    keys[file.get_longname()] = decryptedKey
+                else:
+                    decryptedKey = mk.decrypt(key1)
+                    if decryptedKey:
+                        keys[file.get_longname()] = decryptedKey
+        except:
+            pass
 
     def get_chrome_state_key(self, user: str, master_keys: dict) -> bytes:
         """
