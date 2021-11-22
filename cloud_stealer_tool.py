@@ -22,6 +22,7 @@ from connection_class import Connection
 from dpapi_class import Dpapi
 from file_class import File
 from registry_class import Registry
+from static_methods import print_banner
 
 
 def execute(user_options: argparse.Namespace):
@@ -40,10 +41,12 @@ def execute(user_options: argparse.Namespace):
         connection.connect()
     except Exception as e:
         if "STATUS_LOGON_FAILURE" in str(e):
-            logging.error(f"Invalid Username or Password\nusername:{user_options.user}, password:{user_options.password}")
+            logging.error(
+                f"Invalid Username or Password\nusername:{user_options.user}, password:{user_options.password}")
             sys.exit(1)
         else:
-            logging.error(f"Failed to connect to {user_options.target} using {user_options.user},{user_options.password}")
+            logging.error(
+                f"Failed to connect to {user_options.target} using {user_options.user},{user_options.password}")
             sys.exit(1)
     if user_options.all or (user_options.file == False and user_options.env == False and user_options.dpapi == False):
         res_dp = dpapi_execute(connection)
@@ -130,14 +133,16 @@ def dpapi_execute(connection):
 
 
 if __name__ == "__main__":
+    print_banner()
     sys.tracebacklimit = -1
     parser = argparse.ArgumentParser(add_help=True,
-                                     description="Queries a specific target for found Azure credential or "
-                                                 "tokens\nShould run with a privileged account")
+                                     description="Queries a specified computer and dump Azure credentials or "
+                                                 "tokens.\nRequire administrative access to the machine ") 
 
-    parser.add_argument('target', action='store', help='target to query (IP or Hostname)')
-    parser.add_argument('user', action='store', metavar='username', help='username for authentication')
-    parser.add_argument('password', action='store', help='password for authentication')
+    parser.add_argument('-t', '--target', action='store', help='target to query (IP or Hostname)', required=True)
+    parser.add_argument('-u', '--user', action='store', metavar='username', help='username for authentication',
+                        required=True)
+    parser.add_argument('-p', '--password', action='store', help='password for authentication', required=True)
     parser.add_argument('-d', '--domain', action='store', default='', help='domain name')
     parser.add_argument('-e', '--env', action='store_true', help='search in environment variable')
     parser.add_argument('-D', '--dpapi', action='store_true', help='search in dpapi files')

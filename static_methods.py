@@ -40,3 +40,16 @@ def decrypt_chrome_v80_password(enc_password: bytes, state_key: bytes) -> str:
     decrypted_pass = decrypted_pass[:-16].decode()  # remove suffix bytes
 
     return decrypted_pass
+
+
+def print_banner():
+    print("""
+
+  ____ _                 _   ____  _             _             _____           _ 
+ / ___| | ___  _   _  __| | / ___|| |_ ___  __ _| | ___ _ __  |_   _|__   ___ | |
+| |   | |/ _ \| | | |/ _` | \___ \| __/ _ \/ _` | |/ _ \ '__|   | |/ _ \ / _ \| |
+| |___| | (_) | |_| | (_| |  ___) | ||  __/ (_| | |  __/ |      | | (_) | (_) | |
+ \____|_|\___/ \__,_|\__,_| |____/ \__\___|\__,_|_|\___|_|      |_|\___/ \___/|_|
+
+
+    """)
