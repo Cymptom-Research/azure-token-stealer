@@ -60,10 +60,10 @@ optional arguments:
 
 Dump all 
 ```
-python3 cloud_stealer_tool.py --target adcon1.cymptom.com --user administrator --password Cyber123 -d cymptom.com
+python3 cloud_stealer_tool.py --target adcon1.cymptom.com --user XXX --password XXX -d XXX
 ```
 
 Dump only from DPAPI:
 ```
-python3 cloud_stealer_tool.py --target adcon1.cymptom.com --user administrator --password Cyber123 -d cymptom.com -D 
+python3 cloud_stealer_tool.py --target adcon1.cymptom.com --user XXX --password XXX -d XXX -D 
 ```
